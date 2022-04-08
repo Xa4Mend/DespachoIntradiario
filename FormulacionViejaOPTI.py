@@ -337,7 +337,7 @@ if len(hoja_out1.used_range.address.split(":")) == 2:
 
 
 for i in range(1, escenarios + 1):
-    Despacho(i,menu,geners)
+    Despacho(i,geners)
 
 
 aux = pd.DataFrame(hoja_out1.used_range.value).dropna(how="all").dropna(axis="columns",how="all")
