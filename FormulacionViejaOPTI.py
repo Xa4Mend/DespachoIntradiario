@@ -8,12 +8,11 @@ Javier Andrés Mendoza Rocha, Universidad de Antioquia, Ingeniería Eléctrica
 jandres.mendoza@udea.edu.co
 """
 
-import pyomo.environ as p
+import pyomo.environ as p  # Librería de optimización
 import pandas as pd
-from os import getcwd
-import xlwings as xw
-from string import ascii_uppercase as ABC
-from xlwings import constants, Range
+import xlwings as xw  # Librería para modificar el archivo de Excel mientras está abierto
+from string import ascii_uppercase as ABC  # Librería para crear los nombres de las columnas de Excel
+from xlwings import constants, Range  # Parámetros para usar el centrado de las celdas de Excel
 from obtencionEscenarios import generarEscenarios
 
 
@@ -148,6 +147,9 @@ def Despacho(escenario,geners):
     Toma como parámetro el número de escenarios y el DataFrame que contiene la 
     información de los recursos de generación del archivo 'despacho.xlsx'.
     """
+    #------------------------------------------------------------------------------------------------
+    # Cargado de datos de escenario de generación para el recurso solar en función del escenario
+    #------------------------------------------------------------------------------------------------    
     genersC = geners.copy()
     genersC.reset_index(inplace = True)
     genersC["maximo"].loc[genersC["nombre"]=="SUPERTRINA"] = df_Generar_Escenario["Escenario %s" %escenario].values
@@ -155,7 +157,9 @@ def Despacho(escenario,geners):
     print("Escenario %s de generación: Potencia de SUPERTRINA [MW]" %escenario)
     for i in genersC["maximo"].loc[genersC["nombre"] == "SUPERTRINA"]: print(i)
     
-    
+    #------------------------------------------------------------------------------------------------
+    # Inicialización de la modelación matemática y declaración de variables matemáticas
+    #------------------------------------------------------------------------------------------------
     modelo = p.ConcreteModel("DESPACHO PROGRAMADO")
     modelo.gen = p.Set(initialize=nombresGen)
     modelo.per = p.Set(initialize=demanda.index.values)
@@ -165,9 +169,12 @@ def Despacho(escenario,geners):
     modelo.a = p.Var(nombresRamp,modelo.per,domain=p.Binary)
     modelo.p = p.Var(nombresRamp,modelo.per,domain=p.Binary)
     
-    fun_obj1 = []
-    fun_obj2 = []
-    fun_obj3 = []
+    #------------------------------------------------------------------------------------------------
+    # Implementación de la función objetivo
+    #------------------------------------------------------------------------------------------------
+    fun_obj1 = []  # Término del precio de oferta del generador por su generación
+    fun_obj2 = []  # Término del costo de arranque del recurso térmico
+    fun_obj3 = []  # Término del racionamiento
     
     for i in modelo.gen:
         for t in modelo.per:
@@ -182,19 +189,31 @@ def Despacho(escenario,geners):
     
     modelo.Obj = p.Objective(expr=fun_obj,sense=p.minimize)
     
+    #------------------------------------------------------------------------------------------------
+    # Implementación de restricciones
+    #------------------------------------------------------------------------------------------------    
     def R1(modelo,i,t):
+        """
+        Restricción de la ecuación (2) del artículo
+        """
         ecuacion = modelo.g[i,t] - geners.maximo[i,t]*modelo.u[i,t]
         return ecuacion <= 0
     
     modelo.R1 = p.Constraint(modelo.gen,modelo.per,rule=R1)
     
     def R2(modelo,i,t):
+        """
+        Restricción de la ecuación (3) del artículo
+        """
         ecuacion = modelo.g[i,t] - geners.minimo[i,t]*modelo.u[i,t]
         return ecuacion >= 0
     
     modelo.R2 = p.Constraint(modelo.gen,modelo.per,rule=R2)
     
     def R4(modelo, i, t):
+        """
+        Restricción de la ecuación (4) del artículo
+        """
         ci = 1 if geners.minimo[(i,1)] != 0 else 0
         u_ant = ci if t==1 else modelo.u[i,t-1]
         expr1 = modelo.a[i,t]-modelo.p[i,t]
@@ -204,6 +223,9 @@ def Despacho(escenario,geners):
     modelo.R4 = p.Constraint(nombresRamp,modelo.per,rule=R4)
     
     def R5(modelo,i,t):
+        """
+        Restricción de la ecuación (5) del artículo
+        """
         ecuacion = modelo.a[i,t] + modelo.p[i,t]
         return ecuacion <= 1
     
@@ -211,6 +233,9 @@ def Despacho(escenario,geners):
     
     #Restricción 6
     def R6(modelo, i, t):
+        """
+        Restricción de la ecuación (6) del artículo
+        """
         ci = geners.minimo[(i,1)]
         g_ant = ci if t==1 else modelo.g[i,t-1]
         expr = modelo.g[i,t]-g_ant
@@ -220,6 +245,9 @@ def Despacho(escenario,geners):
     
     #Restricción 7
     def R7(modelo, i, t):
+        """
+        Restricción de la ecuación (7) del artículo
+        """
         ci = geners.minimo[(i,1)]
         g_ant = ci if t==1 else modelo.g[i,t-1]
         expr = g_ant-modelo.g[i,t]
@@ -229,6 +257,9 @@ def Despacho(escenario,geners):
     
     #Restricción 8
     def R8(modelo, i, t):
+        """
+        Restricción de la ecuación (16) del artículo
+        """
         if t < rampa.tml[i]:
             return p.Constraint.Skip
         expr1 = sum(modelo.a[i,k] for k in range(modelo.per[-1]-rampa.loc[i]["tml"]+1, modelo.per[-1]))
@@ -239,6 +270,9 @@ def Despacho(escenario,geners):
     
     #Restricción 9
     def R9(modelo, i, t):
+        """
+        Restricción de la ecuación (17) del artículo
+        """
         if t < rampa.tmfl[i]:
             return p.Constraint.Skip
         expr1 = sum(modelo.p[i,k] for k in range(modelo.per[-1]-rampa.loc[i]["tmfl"]+1, modelo.per[-1]))
@@ -249,6 +283,9 @@ def Despacho(escenario,geners):
     
     #Restricción 10
     def R10(modelo, i):
+        """
+        Restricción que restringe a solo un arranque en el día por recurso
+        """
         ecuacion = []
         for t in modelo.per:
             ecuacion.append(modelo.a[i,t])
@@ -258,10 +295,14 @@ def Despacho(escenario,geners):
     
     #Restricción 11
     def R11(modelo,t):
+        """
+        Restricción de la ecuación (18) del artículo
+        """
         ecuacion = sum([modelo.g[i,t] for i in nombresGen])
         return ecuacion + modelo.r[t] == demanda["Demanda"][t]
     
     modelo.R11 = p.Constraint(modelo.per,rule=R11)
+    #------------------------------------------------------------------------------------------------
         
     #Definir Optimizador
     opt = p.SolverFactory('cbc')
@@ -274,7 +315,7 @@ def Despacho(escenario,geners):
     
     if (results.solver.status == p.SolverStatus.ok) and (results.solver.termination_condition == p.TerminationCondition.optimal):
     
-        #Imprimir Resultados
+        #Imprimir Resultados del valor óptimo de la función objetivo en la consola
         print("\nValor óptimo de la función objetivo en Escenario %s:\n\n" %escenario, modelo.Obj())
     
     
@@ -287,6 +328,8 @@ def Despacho(escenario,geners):
         
         fila = 0
         
+        # Ciclo de creación del DataFrame del despacho bajo un escenario
+
         if escenario != 1:
             aux = pd.DataFrame(hoja_out1.used_range.value).dropna(how="all").dropna(axis="columns",how="all")
             aux.index += 1
@@ -301,10 +344,13 @@ def Despacho(escenario,geners):
                 salida.append(modelo.g[i,t].value) 
             out_.loc[fila] = salida
 
+        # Filas adicionales de RACIONAMIENTO, TOTAL, DEMANDA y BALANCE
         out_.loc[fila+1] = [escenario,"RACIONAMIENTO"]+[modelo.r[i]() for i in modelo.per]
         out_.loc[fila+2] = [escenario,"TOTAL"] + [out_[i].loc[out_["GENERADOR"].isin(nombresGen)].sum() for i in modelo.per]
         out_.loc[fila+3] = [escenario,"DEMANDA"] + [demanda["Demanda"][i] for i in modelo.per]
         out_.loc[fila+4] = [escenario,"BALANCE"] + [out_.loc[fila+2].values.tolist()[2:][i] - demanda["Demanda"].values.tolist()[i] for i in range(0,demanda["Demanda"].index[-1])]
+
+        # Definición del lugar de escritura e inserción del despacho en el Excel dependiendo del escenario
 
         if escenario == 1:
 
@@ -314,6 +360,8 @@ def Despacho(escenario,geners):
 
             hoja_out1.range('A%s' %aux).options(index=False).value = out_
 
+
+        # Definición de colores de las filas adicionales
 
         hoja_out1.range("{0}:{0}".format(fila+2)).color = (200,176,176)
         hoja_out1.range("{0}:{0}".format(fila+3)).color = (148,150,255)
@@ -330,15 +378,21 @@ def Despacho(escenario,geners):
         print("EL PROBLEMA ES INFACTIBLE")
     else:
         print("TERMINÓ EJECUCIÓN CON ERRORES")
-        
-if len(hoja_out1.used_range.address.split(":")) == 2:
+
+# Borrado de contenido de hojas
+
+if len(hoja_out1.used_range.address.split(":")) == 2:  # Condición que asegura que se borre una hoja con contenido
     celda1,celda2 = hoja_out1.used_range.address.split(":")
     hoja_out1.range(":".join([celda1.split("$")[-1],celda2.split("$")[-1]])).api.Delete()
 
-
+#------------------------------------------------------------------------------------------------
+# Calculando el mejor despacho para los distintos escenarios e inserción directa al Excel
+#------------------------------------------------------------------------------------------------
 for i in range(1, escenarios + 1):
     Despacho(i,geners)
 
+# Proceso auxiliar para determinar la columna y fila final del Excel para generar 
+# los filtros de tabla
 
 aux = pd.DataFrame(hoja_out1.used_range.value).dropna(how="all").dropna(axis="columns",how="all")
 
@@ -346,6 +400,9 @@ aux.index += 1
 ultimaColumna = aux.columns[-1]
 aux = aux.index[-1]
 
+#------------------------------------------------------------------------------------------------
+# Inserción de la tabla con filtros al Excel de despacho
+#------------------------------------------------------------------------------------------------
 hoja_out1.tables.add(hoja_out1.range("A1:{0}{1}".format(xlCols[ultimaColumna],aux)))
 Range(hoja_out1.used_range.address).api.HorizontalAlignment = constants.HAlign.xlHAlignCenter
 hoja_out1.autofit()
