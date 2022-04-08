@@ -1,0 +1,106 @@
+Solver command line: ['C:\\Users\\PC\\AppData\\Local\\Programs\\Python\\Python38-32\\Scripts\\cbc.exe', '-printingOptions', 'all', '-import', 'C:\\Users\\PC\\AppData\\Local\\Temp\\tmpuy3ple3f.pyomo.lp', '-stat=1', '-solve', '-solu', 'C:\\Users\\PC\\AppData\\Local\\Temp\\tmpuy3ple3f.pyomo.soln']
+
+Welcome to the CBC MILP Solver 
+Version: 2.10.3 
+Build Date: Dec 15 2019 
+
+command line - C:\Users\PC\AppData\Local\Programs\Python\Python38-32\Scripts\cbc.exe -printingOptions all -import C:\Users\PC\AppData\Local\Temp\tmpuy3ple3f.pyomo.lp -stat=1 -solve -solu C:\Users\PC\AppData\Local\Temp\tmpuy3ple3f.pyomo.soln (default strategy 1)
+Option for printingOptions changed from normal to all
+Presolve 3248 (-3825) rows, 1969 (-480) columns and 10909 (-4190) elements
+Statistics for presolved model
+Original problem has 528 integers (528 of which binary)
+Presolved problem has 192 integers (192 of which binary)
+==== 110 zero objective 9 different
+110 variables have objective of 0
+2 variables have objective of 6508.03
+1424 variables have objective of 13016.1
+48 variables have objective of 70000
+96 variables have objective of 80530
+96 variables have objective of 100000
+1 variables have objective of 195241
+96 variables have objective of 2e+06
+96 variables have objective of 7.5e+07
+==== absolute objective values 9 different
+110 variables have objective of 0
+2 variables have objective of 6508.03
+1424 variables have objective of 13016.1
+48 variables have objective of 70000
+96 variables have objective of 80530
+96 variables have objective of 100000
+1 variables have objective of 195241
+96 variables have objective of 2e+06
+96 variables have objective of 7.5e+07
+==== for integers 96 zero objective 2 different
+96 variables have objective of 0
+96 variables have objective of 7.5e+07
+==== for integers absolute objective values 2 different
+96 variables have objective of 0
+96 variables have objective of 7.5e+07
+===== end objective counts
+
+
+Problem has 3248 rows, 1969 columns (1859 with objective) and 10909 elements
+There are 336 singletons with objective 
+Column breakdown:
+97 of type 0.0->inf, 1680 of type 0.0->up, 0 of type lo->inf, 
+0 of type lo->up, 0 of type free, 0 of type fixed, 
+0 of type -inf->0.0, 0 of type -inf->up, 192 of type 0.0->1.0 
+Row breakdown:
+0 of type E 0.0, 0 of type E 1.0, 0 of type E -1.0, 
+96 of type E other, 0 of type G 0.0, 0 of type G 1.0, 
+0 of type G other, 273 of type L 0.0, 1 of type L 1.0, 
+2878 of type L other, 0 of type Range 0.0->1.0, 0 of type Range other, 
+0 of type Free 
+Continuous objective value is 1.7015e+10 - 0.05 seconds
+Cgl0003I 0 fixed, 0 tightened bounds, 2851 strengthened rows, 0 substitutions
+Cgl0004I processed model has 3248 rows, 1969 columns (192 integer (192 of which binary)) and 13760 elements
+Cbc0038I Initial state - 39 integers unsatisfied sum - 10.5654
+Cbc0038I Pass   1: (0.31 seconds) suminf.    0.00000 (0) obj. 1.70519e+10 iterations 626
+Cbc0038I Solution found of 1.70519e+10
+Cbc0038I Relaxing continuous gives 1.70518e+10
+Cbc0038I Before mini branch and bound, 153 integers at bound fixed and 784 continuous
+Cbc0038I Full problem 3248 rows 1969 columns, reduced to 1919 rows 986 columns - 0 fixed gives 1919, 986 - still too large
+Cbc0038I Full problem 3248 rows 1969 columns, reduced to 1910 rows 983 columns - too large
+Cbc0038I Mini branch and bound did not improve solution (0.36 seconds)
+Cbc0038I Round again with cutoff of 1.70502e+10
+Cbc0038I Reduced cost fixing fixed 51 variables on major pass 2
+Cbc0038I Pass   2: (0.48 seconds) suminf.    0.02134 (56) obj. 1.70502e+10 iterations 537
+Cbc0038I Pass   3: (0.53 seconds) suminf.    0.00000 (0) obj. 1.70502e+10 iterations 281
+Cbc0038I Solution found of 1.70502e+10
+Cbc0038I Relaxing continuous gives 1.70499e+10
+Cbc0038I Before mini branch and bound, 130 integers at bound fixed and 342 continuous
+Cbc0038I Full problem 3248 rows 1969 columns, reduced to 2830 rows 1450 columns - 2 fixed gives 2825, 1447 - still too large
+Cbc0038I Mini branch and bound did not improve solution (0.56 seconds)
+Cbc0038I Round again with cutoff of 1.7047e+10
+Cbc0038I Reduced cost fixing fixed 54 variables on major pass 3
+Cbc0038I Pass   4: (0.61 seconds) suminf.    0.07830 (43) obj. 1.7047e+10 iterations 139
+Cbc0038I Pass   5: (0.67 seconds) suminf.    0.00000 (0) obj. 1.7047e+10 iterations 325
+Cbc0038I Solution found of 1.7047e+10
+Cbc0038I Relaxing continuous gives 1.70356e+10
+Cbc0038I Before mini branch and bound, 143 integers at bound fixed and 340 continuous
+Cbc0038I Mini branch and bound did not improve solution (0.73 seconds)
+Cbc0038I After 0.74 seconds - Feasibility pump exiting with objective of 1.70356e+10 - took 0.48 seconds
+Cbc0012I Integer solution of 1.7035628e+10 found by feasibility pump after 0 iterations and 0 nodes (0.77 seconds)
+Cbc0001I Search completed - best objective 17035628413.45982, took 0 iterations and 0 nodes (0.78 seconds)
+Cbc0035I Maximum depth 0, 0 variables fixed on reduced cost
+Cuts at root node changed objective from 1.70356e+10 to 1.70356e+10
+Probing was tried 0 times and created 0 cuts of which 0 were active after adding rounds of cuts (0.000 seconds)
+Gomory was tried 0 times and created 0 cuts of which 0 were active after adding rounds of cuts (0.000 seconds)
+Knapsack was tried 0 times and created 0 cuts of which 0 were active after adding rounds of cuts (0.000 seconds)
+Clique was tried 0 times and created 0 cuts of which 0 were active after adding rounds of cuts (0.000 seconds)
+MixedIntegerRounding2 was tried 0 times and created 0 cuts of which 0 were active after adding rounds of cuts (0.000 seconds)
+FlowCover was tried 0 times and created 0 cuts of which 0 were active after adding rounds of cuts (0.000 seconds)
+TwoMirCuts was tried 0 times and created 0 cuts of which 0 were active after adding rounds of cuts (0.000 seconds)
+ZeroHalf was tried 0 times and created 0 cuts of which 0 were active after adding rounds of cuts (0.000 seconds)
+
+Result - Optimal solution found
+
+Objective value:                17035628413.45982170
+Enumerated nodes:               0
+Total iterations:               0
+Time (CPU seconds):             0.92
+Time (Wallclock seconds):       0.92
+
+Total time (CPU seconds):       1.02   (Wallclock seconds):       1.02
+
+
