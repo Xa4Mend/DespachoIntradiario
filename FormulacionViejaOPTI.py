@@ -106,16 +106,7 @@ df.columns = dias
 # Pasando los datos al Excel
 
 wb = xw.Book("despacho.xlsx")
-hoja_out1 = wb.sheets['despacho60']
-hoja_out2 = wb.sheets['despacho15']
-generadoresBD = wb.sheets['GENERADORES15']
-rampasBD = wb.sheets['RAMPAS15']
-demandaBD = wb.sheets["DEMANDA15"]
-demandaBD.clear_contents()
-demandaBD.range("A1").value = dff * porcentaje
-demandaBD.range("A1").value = "periodo"
-demandaBD.autofit()
-
+hoja_out1 = wb.sheets['despacho60viejo']
 generadoresBDD = wb.sheets['GENERADORES60']
 rampasBDD = wb.sheets['RAMPAS60']
 demandaBDD = wb.sheets["DEMANDA60"]
@@ -131,16 +122,10 @@ demandaBDD.autofit()
 df_Generar_Escenario, menu = generarEscenarios()
 escenarios = len(df_Generar_Escenario.columns)
 
-if menu == 1:
-    demanda = obtenerDatosHoja(demandaBDD)
-    auxGen = obtenerDatosHoja(generadoresBDD)
-    rampa = obtenerDatosHoja(rampasBDD)
+demanda = obtenerDatosHoja(demandaBDD)
+auxGen = obtenerDatosHoja(generadoresBDD)
+rampa = obtenerDatosHoja(rampasBDD)
     
-else:
-    demanda = obtenerDatosHoja(demandaBD)
-    auxGen = obtenerDatosHoja(generadoresBD)
-    rampa = obtenerDatosHoja(rampasBD)
-
 demanda["periodo"] = demanda["periodo"].astype(int)
 demanda.set_index("periodo", inplace = True)
 
@@ -156,13 +141,12 @@ nombresRamp = rampa.index.values
 
 
 ###############################################################################################################################
-def Despacho(escenario,menu,geners): # menu = 1 --> Toma los datos horario, else: Toma los datos de 15 minutos
+def Despacho(escenario,geners):
     """
     Este código permite modelar matemáticamente el despacho intradiario
-    para una granularidad de 15 minutos.
-    Toma como parámetro el número de escenarios, la opción elegida en
-    el menú y el DataFrame que contiene la información de los
-    recursos de generación del archivo 'despacho.xlsx'.
+    para una granularidad de 1 hora.
+    Toma como parámetro el número de escenarios y el DataFrame que contiene la 
+    información de los recursos de generación del archivo 'despacho.xlsx'.
     """
     genersC = geners.copy()
     genersC.reset_index(inplace = True)
@@ -180,8 +164,6 @@ def Despacho(escenario,menu,geners): # menu = 1 --> Toma los datos horario, else
     modelo.u = p.Var(modelo.gen,modelo.per,domain=p.Binary)
     modelo.a = p.Var(nombresRamp,modelo.per,domain=p.Binary)
     modelo.p = p.Var(nombresRamp,modelo.per,domain=p.Binary)
-    modelo.subper = p.RangeSet(1,60) if menu == 1 else p.RangeSet(1,15)
-    modelo.pg = p.Var(nombresRamp,modelo.per,modelo.subper,domain=p.PositiveReals)
     
     fun_obj1 = []
     fun_obj2 = []
@@ -228,31 +210,23 @@ def Despacho(escenario,menu,geners): # menu = 1 --> Toma los datos horario, else
     modelo.R5 = p.Constraint(nombresRamp,modelo.per,rule=R5)
     
     #Restricción 6
-    def R6(modelo, i, t, k):
-        expr = modelo.pg[i,t,k] - modelo.pg[i,t,k-1]
-        return expr <= rampa["vtc"][i]
+    def R6(modelo, i, t):
+        ci = geners.minimo[(i,1)]
+        g_ant = ci if t==1 else modelo.g[i,t-1]
+        expr = modelo.g[i,t]-g_ant
+        return expr <= rampa["ur"][i]
     
-    modelo.R6 = p.Constraint(nombresRamp, modelo.per, p.RangeSet(2,modelo.subper[-1]), rule=R6)
+    modelo.R6 = p.Constraint(nombresRamp, modelo.per, rule=R6)
     
-    def R6prima(modelo,i,t):
-        expr = modelo.pg[i,t,modelo.subper[1]] - modelo.pg[i,t-1,modelo.subper[-1]]
-        return expr <= rampa["vtc"][i]
-
-    modelo.R6prima = p.Constraint(nombresRamp, p.RangeSet(2,modelo.per[-1]), rule=R6prima)
-
     #Restricción 7
-    def R7(modelo, i, t, k):
-        expr = modelo.pg[i,t,k-1] - modelo.pg[i,t,k]
-        return expr <= rampa["vtd"][i]
+    def R7(modelo, i, t):
+        ci = geners.minimo[(i,1)]
+        g_ant = ci if t==1 else modelo.g[i,t-1]
+        expr = g_ant-modelo.g[i,t]
+        return expr <= rampa["dr"][i]
     
-    modelo.R7 = p.Constraint(nombresRamp, modelo.per, p.RangeSet(2,modelo.subper[-1]), rule=R7)
+    modelo.R7 = p.Constraint(nombresRamp, modelo.per, rule=R7)
     
-    def R7prima(modelo,i,t):
-        expr = modelo.pg[i,t-1,modelo.subper[-1]] - modelo.pg[i,t,modelo.subper[1]]
-        return expr <= rampa["vtd"][i]
-
-    modelo.R7prima = p.Constraint(nombresRamp, p.RangeSet(2,modelo.per[-1]), rule=R7prima)
-
     #Restricción 8
     def R8(modelo, i, t):
         if t < rampa.tml[i]:
@@ -288,30 +262,6 @@ def Despacho(escenario,menu,geners): # menu = 1 --> Toma los datos horario, else
         return ecuacion + modelo.r[t] == demanda["Demanda"][t]
     
     modelo.R11 = p.Constraint(modelo.per,rule=R11)
-    
-    # Restricción 12
-    def R12(modelo, i, t, k):
-        expr = modelo.pg[i,t,k]
-        return expr <= geners.maximo[i,t]
-    
-    modelo.R12 = p.Constraint(nombresRamp, modelo.per, modelo.subper, rule=R12)
-    
-    # Restricción 13
-    def R13(modelo, i, t, k):
-        expr = modelo.pg[i,t,k]
-        return expr >= geners.minimo[i,t] * modelo.u[i,t]
-    
-    modelo.R13 = p.Constraint(nombresRamp, modelo.per, modelo.subper, rule=R13)
-    
-    # Restricción 14
-    def R14(modelo, i, t):
-        sumatorio = sum(modelo.pg[i,t,k] for k in range(1,modelo.subper[-1]))
-        expr1 = modelo.pg[i,t-1,modelo.subper[-1]] + modelo.pg[i,t,modelo.subper[-1]] + 2*sumatorio
-        expr2 = 2*modelo.subper[-1] * modelo.g[i,t]
-        return expr1 == expr2
-    
-    modelo.R14 = p.Constraint(nombresRamp,p.RangeSet(2,modelo.per[-1]),rule=R14)
-        
         
     #Definir Optimizador
     opt = p.SolverFactory('cbc')
@@ -338,10 +288,7 @@ def Despacho(escenario,menu,geners): # menu = 1 --> Toma los datos horario, else
         fila = 0
         
         if escenario != 1:
-            if menu == 1:
-                aux = pd.DataFrame(hoja_out1.used_range.value).dropna(how="all").dropna(axis="columns",how="all")
-            else:
-                aux = pd.DataFrame(hoja_out2.used_range.value).dropna(how="all").dropna(axis="columns",how="all")
+            aux = pd.DataFrame(hoja_out1.used_range.value).dropna(how="all").dropna(axis="columns",how="all")
             aux.index += 1
             aux = aux.index[-1] + 1
             fila += aux - 1
@@ -360,26 +307,19 @@ def Despacho(escenario,menu,geners): # menu = 1 --> Toma los datos horario, else
         out_.loc[fila+4] = [escenario,"BALANCE"] + [out_.loc[fila+2].values.tolist()[2:][i] - demanda["Demanda"].values.tolist()[i] for i in range(0,demanda["Demanda"].index[-1])]
 
         if escenario == 1:
-            if menu == 1:
-                hoja_out1.range('A1').options(index=False).value = out_
-            else:
-                hoja_out2.range('A1').options(index=False).value = out_
+
+            hoja_out1.range('A1').options(index=False).value = out_
+
         else:
-            if menu == 1:
-                hoja_out1.range('A%s' %aux).options(index=False).value = out_
-            else:
-                hoja_out2.range('A%s' %aux).options(index=False).value = out_
-            
-        if menu == 1:
-            hoja_out1.range("{0}:{0}".format(fila+2)).color = (200,176,176)
-            hoja_out1.range("{0}:{0}".format(fila+3)).color = (148,150,255)
-            hoja_out1.range("{0}:{0}".format(fila+4)).color = (255,150,255)
-            hoja_out1.range("{0}:{0}".format(fila+5)).color = (50,255,90)
-        else:
-            hoja_out2.range("{0}:{0}".format(fila+2)).color = (200,176,176)
-            hoja_out2.range("{0}:{0}".format(fila+3)).color = (148,150,255)
-            hoja_out2.range("{0}:{0}".format(fila+4)).color = (255,150,255)
-            hoja_out2.range("{0}:{0}".format(fila+5)).color = (50,255,90)
+
+            hoja_out1.range('A%s' %aux).options(index=False).value = out_
+
+
+        hoja_out1.range("{0}:{0}".format(fila+2)).color = (200,176,176)
+        hoja_out1.range("{0}:{0}".format(fila+3)).color = (148,150,255)
+        hoja_out1.range("{0}:{0}".format(fila+4)).color = (255,150,255)
+        hoja_out1.range("{0}:{0}".format(fila+5)).color = (50,255,90)
+
     
     elif (results.solver.termination_condition == p.TerminationCondition.infeasible):
         print()
@@ -391,32 +331,21 @@ def Despacho(escenario,menu,geners): # menu = 1 --> Toma los datos horario, else
     else:
         print("TERMINÓ EJECUCIÓN CON ERRORES")
         
-
-if menu == 1:
-    if len(hoja_out1.used_range.address.split(":")) == 2:
-        celda1,celda2 = hoja_out1.used_range.address.split(":")
-        hoja_out1.range(":".join([celda1.split("$")[-1],celda2.split("$")[-1]])).api.Delete()
-else:
-    if len(hoja_out2.used_range.address.split(":")) == 2:
-        celda1,celda2 = hoja_out2.used_range.address.split(":")
-        hoja_out2.range(":".join([celda1.split("$")[-1],celda2.split("$")[-1]])).api.Delete()
+if len(hoja_out1.used_range.address.split(":")) == 2:
+    celda1,celda2 = hoja_out1.used_range.address.split(":")
+    hoja_out1.range(":".join([celda1.split("$")[-1],celda2.split("$")[-1]])).api.Delete()
 
 
 for i in range(1, escenarios + 1):
     Despacho(i,menu,geners)
 
-if menu == 1:
-    aux = pd.DataFrame(hoja_out1.used_range.value).dropna(how="all").dropna(axis="columns",how="all")
-else:
-    aux = pd.DataFrame(hoja_out2.used_range.value).dropna(how="all").dropna(axis="columns",how="all")
+
+aux = pd.DataFrame(hoja_out1.used_range.value).dropna(how="all").dropna(axis="columns",how="all")
+
 aux.index += 1
 ultimaColumna = aux.columns[-1]
 aux = aux.index[-1]
-if menu == 1:
-    hoja_out1.tables.add(hoja_out1.range("A1:{0}{1}".format(xlCols[ultimaColumna],aux)))
-    Range(hoja_out1.used_range.address).api.HorizontalAlignment = constants.HAlign.xlHAlignCenter
-    hoja_out1.autofit()
-else:
-    hoja_out2.tables.add(hoja_out2.range("A1:{0}{1}".format(xlCols[ultimaColumna],aux)))
-    Range(hoja_out2.used_range.address).api.HorizontalAlignment = constants.HAlign.xlHAlignCenter
-    hoja_out2.autofit()
+
+hoja_out1.tables.add(hoja_out1.range("A1:{0}{1}".format(xlCols[ultimaColumna],aux)))
+Range(hoja_out1.used_range.address).api.HorizontalAlignment = constants.HAlign.xlHAlignCenter
+hoja_out1.autofit()
