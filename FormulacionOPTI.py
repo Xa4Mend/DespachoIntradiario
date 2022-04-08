@@ -158,7 +158,11 @@ nombresRamp = rampa.index.values
 ###############################################################################################################################
 def Despacho(escenario,menu,geners): # menu = 1 --> Toma los datos horario, else: Toma los datos de 15 minutos
     """
-    La idea es que ajustes Pedido.py de forma que reciba
+    Este código permite modelar matemáticamente el despacho intradiario
+    para una granularidad de 15 minutos.
+    Toma como parámetro el número de escenarios, la opción elegida en
+    el menú y el DataFrame que contiene la información de los
+    recursos de generación del archivo 'despacho.xlsx'.
     """
     genersC = geners.copy()
     genersC.reset_index(inplace = True)
