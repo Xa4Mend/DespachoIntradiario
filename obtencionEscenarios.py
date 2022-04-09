@@ -33,9 +33,9 @@ def generarEscenarios():
     
     if a == 1: # Se eligió trabajar con despacho horario
         df2 = ar2.parse("GENERADORES60")
-        anadir1 = np.random.uniform(0.2,0.3,4) # Nubes entre 11am y 2pm
-        anadir2 = np.random.uniform(0.15,0.25,3) # Nubes entre 2pm - 4pm
-        anadir3 = np.hstack((np.random.uniform(0.65,0.75,1),np.random.uniform(0.25,0.35,2))) # Nubes entre 9am - 11am
+        anadir1 = np.random.uniform(0.02,0.08,3) # Nubes entre 1pm y 3pm
+        anadir2 = np.random.uniform(0.02,0.08,3) # Nubes entre 2pm - 4pm
+        anadir3 = np.hstack((np.random.uniform(0.02,0.08,1),np.random.uniform(0.08,0.10,2))) # Nubes entre 9am - 11am
         for i in df1[mm]:
             datos.append(df1[mm][cont])
             cont += 12 # Como los datos entregados son cada 5 minutos, para pasar a la siguiente hora se le suma 60/5 = 12
@@ -44,17 +44,22 @@ def generarEscenarios():
         # Se inicializan los escenarios en 1, para posteriormente cambiarles los datos almacenados en los vectores de anadir
         escenario1 = np.ones(int(len(df2)/4))
         escenario2 = np.ones(int(len(df2)/4))
-        escenario2[10:14] = anadir1
+        escenario2[12:15] = anadir1
         escenario3 = np.ones(int(len(df2)/4))
         escenario3[13:16] = anadir2
         escenario4 = np.ones(int(len(df2)/4))
         escenario4[8:11] = anadir3
-        escenarios = [escenario1, escenario2, escenario3, escenario4]
+        escenarios = [
+            escenario1, 
+            escenario2 
+            # escenario3, 
+            # escenario4
+            ]
     else: # Se eligió trabajar con despacho cada 15 minutos
         df2 = ar2.parse("GENERADORES15")
-        anadir1 = np.random.uniform(0.2,0.3,12) # Nubes entre 11:30am y 2:15pm
-        anadir2 = np.random.uniform(0.15,0.25,11) # Nubes entre 2:30pm - 4:45pm
-        anadir3 = np.hstack((np.random.uniform(0.65,0.75,3),np.random.uniform(0.25,0.35,6))) # Nubes entre 9:30am - 11:15am
+        anadir1 = np.random.uniform(0.02,0.08,8) # Nubes entre 1pm y 3pm
+        anadir2 = np.random.uniform(0.02,0.08,11) # Nubes entre 2:30pm - 4:45pm
+        anadir3 = np.hstack((np.random.uniform(0.02,0.08,3),np.random.uniform(0.08,0.1,6))) # Nubes entre 9:30am - 11:15am
         
         for i in df1[mm]:
             datos.append(df1[mm][cont])
@@ -64,12 +69,17 @@ def generarEscenarios():
 
         escenario1 = np.ones(int(len(df2)/4))
         escenario2 = np.ones(int(len(df2)/4))
-        escenario2[45:57] = anadir1
+        escenario2[51:59] = anadir1
         escenario3 = np.ones(int(len(df2)/4))
         escenario3[56:67] = anadir2
         escenario4 = np.ones(int(len(df2)/4))
         escenario4[36:45] = anadir3
-        escenarios = [escenario1, escenario2, escenario3, escenario4]
+        escenarios = [
+            escenario1, 
+            escenario2 
+            # escenario3, 
+            # escenario4
+            ]
         
     datos = np.array(datos)
     df2.set_index("nombre", inplace = True)
@@ -91,7 +101,12 @@ def generarEscenarios():
         matriz.append(datos)
         
     matriz = np.matrix(matriz).T
-    column_names = ["Escenario 1", "Escenario 2", "Escenario 3", "Escenario 4"]
+    column_names = [
+        "Escenario 1", 
+        "Escenario 2" 
+        # "Escenario 3", 
+        # "Escenario 4"
+        ]
     
     dff = pd.DataFrame(matriz, columns = column_names)
     

@@ -298,7 +298,7 @@ def Despacho(escenario,menu,geners): # menu = 1 --> Toma los datos horario, else
     #Restricción 8
     def R8(modelo, i, t):
         """
-        Restricción de la ecuación (16) del artículo
+        Restricción de la ecuación (17) del artículo
         """
         if t < rampa.tml[i]:
             return p.Constraint.Skip
@@ -311,7 +311,7 @@ def Despacho(escenario,menu,geners): # menu = 1 --> Toma los datos horario, else
     #Restricción 9
     def R9(modelo, i, t):
         """
-        Restricción de la ecuación (17) del artículo
+        Restricción de la ecuación (18) del artículo
         """
         if t < rampa.tmfl[i]:
             return p.Constraint.Skip
@@ -324,7 +324,7 @@ def Despacho(escenario,menu,geners): # menu = 1 --> Toma los datos horario, else
     #Restricción 10
     def R10(modelo, i):
         """
-        Restricción que restringe a solo un arranque en el día por recurso
+        Restricción de la ecuación (20)
         """
         ecuacion = []
         for t in modelo.per:
@@ -336,7 +336,7 @@ def Despacho(escenario,menu,geners): # menu = 1 --> Toma los datos horario, else
     #Restricción 11
     def R11(modelo,t):
         """
-        Restricción de la ecuación (18) del artículo
+        Restricción de la ecuación (19) del artículo
         """
         ecuacion = sum([modelo.g[i,t] for i in nombresGen])
         return ecuacion + modelo.r[t] == demanda["Demanda"][t]
@@ -368,12 +368,24 @@ def Despacho(escenario,menu,geners): # menu = 1 --> Toma los datos horario, else
         """
         Restricción de la ecuación (15) del artículo
         """
+        estadoTmenos1 = 0 if t-1 == 0 else modelo.pg[i,t-1,modelo.subper[-1]]
         sumatorio = sum(modelo.pg[i,t,k] for k in range(1,modelo.subper[-1]))
-        expr1 = modelo.pg[i,t-1,modelo.subper[-1]] + modelo.pg[i,t,modelo.subper[-1]] + 2*sumatorio
-        expr2 = 2*modelo.subper[-1] * modelo.g[i,t]
+        expr1 = estadoTmenos1 + modelo.pg[i,t,modelo.subper[-1]] + 2*sumatorio
+        expr2 = 2 * modelo.subper[-1] * modelo.g[i,t]
         return expr1 == expr2
     
-    modelo.R14 = p.Constraint(nombresRamp,p.RangeSet(2,modelo.per[-1]),rule=R14)
+    modelo.R14 = p.Constraint(nombresRamp,p.RangeSet(1,modelo.per[-1]),rule=R14)
+
+    def R15(modelo, i):
+        """
+        Restricción de la ecuación (16)
+        """
+        expr = modelo.pg[i,1,1]
+        return expr <= rampa["vtc"][i]
+    
+    modelo.R15 = p.Constraint(nombresRamp,rule=R15)
+    
+
     #------------------------------------------------------------------------------------------------
         
         
@@ -388,8 +400,9 @@ def Despacho(escenario,menu,geners): # menu = 1 --> Toma los datos horario, else
     
     if (results.solver.status == p.SolverStatus.ok) and (results.solver.termination_condition == p.TerminationCondition.optimal):
     
-        # Imprimir Resultados del valor óptimo de la función objetivo en la consola
-        print("\nValor óptimo de la función objetivo en Escenario %s:\n\n" %escenario, modelo.Obj())
+        # Imprimir Resultados del valor óptimo de la función objetivo en la consola en función del número 
+        # final de subperiodos
+        print("\nValor óptimo de la función objetivo en Escenario %s:\n\n" %escenario, modelo.subper[-1]/60 * modelo.Obj())
     
     
         columnas = ["Escenario","GENERADOR"]
@@ -411,7 +424,6 @@ def Despacho(escenario,menu,geners): # menu = 1 --> Toma los datos horario, else
             fila += aux - 1
         
         # Ciclo de creación del DataFrame del despacho bajo un escenario
-
         for i in modelo.gen:
             fila += 1
             salida = []

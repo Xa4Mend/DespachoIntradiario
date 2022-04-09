@@ -121,6 +121,8 @@ demandaBDD.autofit()
 df_Generar_Escenario, menu = generarEscenarios()
 escenarios = len(df_Generar_Escenario.columns)
 
+
+
 demanda = obtenerDatosHoja(demandaBDD)
 auxGen = obtenerDatosHoja(generadoresBDD)
 rampa = obtenerDatosHoja(rampasBDD)
